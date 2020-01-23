@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 import pandas as pd
-from sklearn.metrics import accuracy_score, average_precision_score
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
 from aggregators import methods
 
@@ -44,8 +44,8 @@ def run():
     target_names = {'credible': 0, 'mostly_credible': 1, 'mostly_not_credible': 2, 'credible_uncertain': 3,
                     'not_credible': 4,
                     'not_verifiable': 5}
-    results = {}
     for file_name in DATA_DIR.glob('*.csv'):
+        results = {}
         name = file_name.name[:-4]
         results['collection'] = name
         dummy_values = pd.read_csv(file_name, low_memory=False)
@@ -53,9 +53,31 @@ def run():
         dummy_values['actual_credible'] = dummy_values.apply(lambda row: callback_aggregate(row), axis=1)
         predictions = [target_names[value] for value in dummy_values.actual_credible]
         results['accuracy'] = accuracy_score(ground_labels, predictions)
-        results['precision_none'] = average_precision_score(ground_labels, predictions)
-        results['precision_micro'] = average_precision_score(ground_labels, predictions, average='micro')
-        results['precision_macro'] = average_precision_score(ground_labels, predictions, average='macro')
+        scores = precision_recall_fscore_support(ground_labels, predictions, average='macro',
+                                                 labels=list(target_names.values()), zero_division=1)
+        results['precision_macro'] = scores[0]
+        results['recall_macro'] = scores[1]
+        results['fscore_macro'] = scores[2]
+        scores = precision_recall_fscore_support(ground_labels, predictions, average='micro',
+                                                 labels=list(target_names.values()), zero_division=1)
+        results['precision_micro'] = scores[0]
+        results['recall_micro'] = scores[1]
+        results['fscore_micro'] = scores[2]
+        scores = precision_recall_fscore_support(ground_labels, predictions,
+                                                 labels=list(target_names.values()), zero_division=1)
+        # per class precision, recall, f1
+        target_names = list(target_names.keys())
+        for i, score in enumerate(scores):
+            for j in range(len(target_names)):
+                if i == 0:
+                    column_name = 'precision_{}'.format(target_names[j])
+                    results[column_name] = score[j]
+                elif i == 1:
+                    column_name = 'recall_{}'.format(target_names[j])
+                    results[column_name] = score[j]
+                elif i == 2:
+                    column_name = 'fscore_{}'.format(target_names[j])
+                    results[column_name] = score[j]
         name = name + '.json'
         with open(DATA_DIR / name, 'w', encoding='utf-8') as f:
             json.dump(results, f, ensure_ascii=False, indent=4)
