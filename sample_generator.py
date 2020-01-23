@@ -16,7 +16,7 @@ def sample_generator(args):
     total_sample = args.n_samples
 
     # credibility boundaries
-    misinfome_creds = args.misinfome_cred
+    misinfome_cred = args.misinfome_cred
     content_analys_cred = args.content_analysis_cred
     claim_cred = args.claim_cred
 
@@ -25,31 +25,30 @@ def sample_generator(args):
     content_analys_conf = args.content_analysis_conf
     claim_conf = args.claim_conf
 
+    dummy_values = pd.DataFrame()
+
+    index = total_sample
+    # credible
+    # credibility values
+    dummy_values.loc[:index, 'misinfome_creds'] = np.random.uniform(high=1, low=misinfome_cred[0], size=[total_sample])
+    dummy_values.loc[:index, 'content_analys_creds'] = np.random.uniform(high=1, low=content_analys_cred[0],
+                                                                         size=[total_sample])
+    dummy_values.loc[:index, 'claim_creds'] = np.random.uniform(high=1, low=claim_cred[0], size=[total_sample])
+    # confidence value
+    dummy_values.loc[:index, 'misinfome_conf'] = np.random.randint(high=1, low=misinfome_conf, size=[total_sample])
+    dummy_values.loc[:index, 'content_analys_conf'] = np.random.randint(high=1, low=content_analys_conf,
+                                                                        size=[total_sample])
+    dummy_values.loc[:index, 'claim_conf'] = np.random.randint(high=1, low=claim_conf, size=[total_sample])
     # agreement
-    agreement = args.agreement
+    dummy_values.loc[:index, 'agreement'] = np.random.randint(high=total_modules, low=1, size=[total_sample])
+    # confidence_density
+    dummy_values.loc[:index, 'confidence_density'] = np.random.randint(high=1, low=0, size=[total_sample])
+    # label credibility
+    dummy_values.loc[:index, 'expected_credible'] = 'credible'
 
-    # confidence density -> boolean true means high confidence, false means low confidence
-    confidence_high = args.confidence_high
-
-    # initialize json for results
-    columns = ['misinfome_cred',
-               'misinfome_conf',
-               'content_analysis_cred',
-               'content_analysis_conf',
-               'claim_conf',
-               'claim_cred',
-               'agreement',
-               'confidence_density']
-
-    dummy_values = pd.DataFrame(columns=columns)
-
-    # all modules "agree" with high confidence
-    if agreement == total_modules and confidence_high:
-        # credible
-        dummy_values.misinfome_cred.apply(np.random.sample(total_sample).uniform(misinfome_creds[0], misinfome_creds[1]))
-        print(dummy_values.misinfome_cred)
-
+    print(dummy_values)
     pass
+
 
 if __name__ == '__main__':
     print('This script generates samples for testing rules')
@@ -70,9 +69,6 @@ if __name__ == '__main__':
                         type=float, default=0.6)
     parser.add_argument('--claim_conf', type=float, default=0.7)
     parser.add_argument('--n_modules', type=int, default=3, help="total number of modules")
-    parser.add_argument('--agreement', type=int, default=3,
-                        help="If n module exists, and agreement is equal to m (e.g), m module agrees, n-m module disagrees")
-    parser.add_argument('--confidence_high', type=bool, default=True)
 
     args = parser.parse_args()
     sample_generator(args)
