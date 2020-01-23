@@ -14,10 +14,6 @@ Pipeline for the evaluation
 
 DATA_DIR = Path(os.path.dirname(os.path.dirname(__file__))) / Path(os.path.basename(os.path.dirname(__file__))) / 'data'
 
-LABELS = {
-
-}
-
 
 def callback_aggregate(row, mode='dummy_output'):
     dummy_request = _create_request(row)
@@ -61,7 +57,7 @@ def run():
         results['precision_micro'] = average_precision_score(ground_labels, predictions, average='micro')
         results['precision_macro'] = average_precision_score(ground_labels, predictions, average='macro')
         name = name + '.json'
-        with open(DATA_DIR / name , 'w', encoding='utf-8') as f:
+        with open(DATA_DIR / name, 'w', encoding='utf-8') as f:
             json.dump(results, f, ensure_ascii=False, indent=4)
 
 

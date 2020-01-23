@@ -37,7 +37,7 @@ def sample_generator(args):
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
 
-    # credible
+    # All agree with high confidence
 
     # credibility values
     dummy_values.loc[:index, 'misinfome_creds'] = np.random.uniform(high=1, low=misinfome_cred[0], size=[total_sample])
