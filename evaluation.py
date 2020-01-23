@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import pandas as pd
+from sklearn.metrics import accuracy_score, precision_score
 
 from aggregators import methods
 
@@ -13,7 +14,7 @@ Pipeline for the evaluation
 DATA_DIR = Path(os.path.dirname(os.path.dirname(__file__))) / Path(os.path.basename(os.path.dirname(__file__))) / 'data'
 
 
-def callback_aggregate(row, mode = 'dummy_output'):
+def callback_aggregate(row, mode='dummy_output'):
     dummy_request = _create_request(row)
     response = methods[mode](dummy_request)
     return response
@@ -39,21 +40,19 @@ def _create_request(row):
 
 
 def run():
+    target_names = ['credible', 'mostly_credible', 'mostly_not_credible', 'credible_uncertain', 'not_credible',
+                    'not_verifiable']
+    results = pd.DataFrame()
     for file_name in DATA_DIR.glob('*.csv'):
+        results['id'] = file_name.name
         dummy_values = pd.read_csv(file_name, low_memory=False)
-        ground_labels = dummy_values['expected_credible']
-        dummy_values['actual_credible'] = dummy_values.apply(lambda row: callback_aggregate(row), axis = 1)
-        print(dummy_values)
+        ground_labels = dummy_values['expected_credible'].values
+        dummy_values['actual_credible'] = dummy_values.apply(lambda row: callback_aggregate(row), axis=1)
+        predictions = dummy_values.actual_credible
+        results['accuracy'] = accuracy_score(ground_labels, predictions)
+        results['precision'] = precision_score(ground_labels, predictions)
 
-        # glued_data = pd.concat([glued_data, x], axis=0)
-
-    pass
-
-
-## aggregation
-
-
-# check sepearetly
+        print(results)
 
 
 if __name__ == '__main__':
