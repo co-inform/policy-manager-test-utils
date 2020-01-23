@@ -51,8 +51,6 @@ def sample_generator(args):
                                                                         size=[total_sample])
     dummy_values.loc[:index, 'claim_conf'] = np.random.uniform(high=1, low=claim_conf, size=[total_sample])
 
-    # agreement
-    dummy_values.loc[:index, 'agreement'] = np.random.randint(high=total_modules + 1, low=1, size=[total_sample])
     # confidence_density -> all of them have high confidence
     dummy_values.loc[:index, 'confidence_density'] = 1.0
     # label credibility
