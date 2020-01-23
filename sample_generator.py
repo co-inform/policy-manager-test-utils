@@ -6,6 +6,9 @@ import numpy as np
 import pandas as pd
 
 DATA_DIR = Path(os.path.dirname(os.path.dirname(__file__))) / Path(os.path.basename(os.path.dirname(__file__))) / 'data'
+LABELS = {'credible': 0, 'mostly_credible': 1, 'mostly_not_credible': 2, 'credible_uncertain': 3,
+          'not_credible': 4,
+          'not_verifiable': 5}
 
 
 def sample_generator(args):
@@ -31,30 +34,52 @@ def sample_generator(args):
 
     dummy_values = pd.DataFrame()
 
-    index = total_sample
-
     # if data folder does not exist, create
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
 
-    # All agree with high confidence
+    # All agree with high confidence, not verifiable is not included
+    labels = list(LABELS.keys())
+    for i in range(0, len(labels) - 1):
+        data = pd.DataFrame()
 
-    # credibility values
-    dummy_values.loc[:index, 'misinfome_creds'] = np.random.uniform(high=1, low=misinfome_cred[0], size=[total_sample])
-    dummy_values.loc[:index, 'content_analys_creds'] = np.random.uniform(high=1, low=content_analys_cred[0],
-                                                                         size=[total_sample])
-    dummy_values.loc[:index, 'claim_creds'] = np.random.uniform(high=1, low=claim_cred[0], size=[total_sample])
+        if i == 0:
+            data['misinfome_creds'] = np.random.uniform(high=1, low=misinfome_cred[i],
+                                                        size=[total_sample])
+            data['content_analys_creds'] = np.random.uniform(high=1, low=content_analys_cred[i],
+                                                             size=[total_sample])
+            data['claim_creds'] = np.random.uniform(high=1, low=claim_cred[i], size=[total_sample])
+        elif i == 4:
+            data['misinfome_creds'] = np.random.uniform(high=misinfome_cred[i - 1],
+                                                        low=-1,
+                                                        size=[total_sample])
+            data['content_analys_creds'] = np.random.uniform(high=content_analys_cred[i - 1],
+                                                             low=-1,
+                                                             size=[total_sample])
+            data['claim_creds'] = np.random.uniform(high=claim_cred[i - 1], low=-1,
+                                                    size=[total_sample])
+        else:
+            data['misinfome_creds'] = np.random.uniform(high=misinfome_cred[i - 1],
+                                                        low=misinfome_cred[i],
+                                                        size=[total_sample])
+            data['content_analys_creds'] = np.random.uniform(high=content_analys_cred[i - 1],
+                                                             low=content_analys_cred[i],
+                                                             size=[total_sample])
+            data['claim_creds'] = np.random.uniform(high=claim_cred[i - 1], low=claim_cred[i],
+                                                    size=[total_sample])
 
-    # confidence value
-    dummy_values.loc[:index, 'misinfome_conf'] = np.random.uniform(high=1, low=misinfome_conf, size=[total_sample])
-    dummy_values.loc[:index, 'content_analys_conf'] = np.random.uniform(high=1, low=content_analys_conf,
-                                                                        size=[total_sample])
-    dummy_values.loc[:index, 'claim_conf'] = np.random.uniform(high=1, low=claim_conf, size=[total_sample])
+        # confidence value
+        data['misinfome_conf'] = np.random.uniform(high=1, low=misinfome_conf, size=[total_sample])
+        data['content_analys_conf'] = np.random.uniform(high=1, low=content_analys_conf,
+                                                        size=[total_sample])
+        data['claim_conf'] = np.random.uniform(high=1, low=claim_conf, size=[total_sample])
 
-    # confidence_density -> all of them have high confidence
-    dummy_values.loc[:index, 'confidence_density'] = 1.0
-    # label credibility
-    dummy_values.loc[:index, 'expected_credible'] = 'credible'
+        # confidence_density -> all of them have high confidence
+        data['confidence_density'] = 1.0
+        # label credibility
+        data['expected_credible'] = labels[i]
+
+        dummy_values = dummy_values.append(data, ignore_index=True, sort=True)
 
     # save dummy values {casename}_{module_name}_{upboundary_cred}_{conf}
     path = DATA_DIR / 'all_agree_with_high_misinfome_{misinfome_cred}_{misinfome_conf}_contentanalysis_{content_analysis_cred}_{content_analysis_conf}_claim_{claim_cred}_{claim_conf}.csv'.format(
