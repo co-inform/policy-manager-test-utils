@@ -22,17 +22,17 @@ def dummy_output(credibility_results):
     random_idx = np.random.randint(high=len(labels), low=0, size=1)[0]
     return labels[random_idx]
 
-
-def check_single_module(single_module_result):
+def median(credibility_results):
     pass
 
-
-# todo add probabilistic evaluation methods
-
+def maximum(credibility_results):
+    pass
 
 methods = {
 
     'default': default,
-    'dummy_output': dummy_output
+    'dummy_output': dummy_output,
+    'median': median,
+    'maximum': maximum
 
 }
