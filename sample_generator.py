@@ -26,8 +26,9 @@ class Sample_Generator():
         self.labels = {'credible': 0, 'mostly_credible': 1, 'mostly_not_credible': 2, 'credible_uncertain': 3,
                        'not_credible': 4,
                        'not_verifiable': 5}
-        self.modules = {'misinfome_creds': self.misinfome_cred, 'content_analys_creds': self.content_analys_cred,
-                        'claim_creds': self.claim_cred}
+        self.modules = {'misinfome': [self.misinfome_cred, self.misinfome_conf],
+                        'content_analys': [self.content_analys_cred, self.content_analys_conf],
+                        'claim': [self.claim_cred, self.claim_conf]}
 
     def _all_agree_helper(self, labels):
         data = pd.DataFrame()
@@ -109,38 +110,119 @@ class Sample_Generator():
 
         return labels[picked_id]
 
-    def some_agree_without_fail(self):
+    def some_agree(self):
+        '''
+        This method creates values that some modules agree, some disagree with high/low confidence
+        :return:
+        :rtype:
+        '''
+        dummy_values = pd.DataFrame()
+        # if data folder does not exist, create
+        if not os.path.exists(DATA_DIR):
+            os.makedirs(DATA_DIR)
+
+        for i in range(1, len(self.modules.keys()) + 1):
+            data_low_conf = self._some_agree_helper(num_diff_module=i, confidence_density=False)
+            dummy_values = dummy_values.append(data_low_conf, ignore_index=True, sort=True)
+            data_high_conf = self._some_agree_helper(num_diff_module=i, confidence_density=True)
+            dummy_values = dummy_values.append(data_high_conf, ignore_index=True, sort=True)
+
+        # save dummy values {casename}_{module_name}_{upboundary_cred}_{conf}
+        path = DATA_DIR / '{func_name}_misinfome_{misinfome_cred}_{misinfome_conf}_contentanalysis_{content_analysis_cred}_{content_analysis_conf}_claim_{claim_cred}_{claim_conf}.csv'.format(
+            func_name=self.some_agree.__name__,
+            misinfome_cred=str(self.misinfome_cred[0]), misinfome_conf=str(self.misinfome_conf),
+            content_analysis_conf=self.content_analys_conf, content_analysis_cred=self.content_analys_cred[0],
+            claim_cred=str(self.claim_cred[0]), claim_conf=self.claim_conf)
+        dummy_values.to_csv(path)
+
+    def _some_agree_helper(self, num_diff_module, confidence_density):
+        '''
+        :param num_diff_module: number of modules which disgree
+        :type num_diff_module: int
+        :param confidence_density: confidence density of disagreed modules. If it is true, modules disagree with high confidence
+        :type: boolean
+        :return:
+        :rtype:
+        '''
         #### 2 modules agree, one is not ######
-        random_modules = self._pick_random_modules(num_diff_module=2)
+        random_modules = self._pick_random_modules(num_diff_module=num_diff_module)
         agreed_modules = random_modules['agree']
         disagreed_modules = random_modules['disagree']
         labels = list(self.labels.keys())
-
+        temp_creds = {'misinfome': [], 'content_analys': [], 'claim': []}
+        temp_confs = {'misinfome': [], 'content_analys': [], 'claim': []}
+        cred_labels = []
+        data = pd.DataFrame()
+        print('Agreed modules {}'.format(agreed_modules))
+        print('Disagreed modules {}'.format(disagreed_modules))
         for i in range(0, len(self.labels.keys()) - 1):
-            data = pd.DataFrame()
-
             if i == 0:
-                for idx, agreed_module in enumerate(agreed_modules):
-                    data[agreed_module] = np.random.uniform(high=1, low=self.modules[agreed_module][i],
-                                                            size=[self.total_sample])
-                    data['expected_credible'] = labels[i]
+                for agreed_module in agreed_modules:
+                    temp_creds[agreed_module].append(np.random.uniform(high=1, low=self.modules[agreed_module][0][i],
+                                                                       size=self.total_sample))
+                    # high confidence
+                    temp_confs[agreed_module].append(
+                        np.random.uniform(high=1, low=self.modules[agreed_module][1], size=self.total_sample))
 
+                    # agreed module -> credible, disagreed modules  -> mostly credible (i+1), but disagree module's label is not final.
+                for disagreed_module in disagreed_modules:
+                    temp_creds[disagreed_module].append(np.random.uniform(high=self.modules[disagreed_module][0][i],
+                                                                          low=self.modules[disagreed_module][0][i + 1],
+                                                                          size=self.total_sample))
+                    temp_confs[disagreed_module].append(
+                        np.random.uniform(high=1, low=self.modules[disagreed_module][1],
+                                          size=self.total_sample)) if confidence_density else temp_confs[
+                        disagreed_module].append(
+                        np.random.uniform(high=self.modules[disagreed_module][1], low=0, size=self.total_sample))
+
+                cred_labels.append(np.asarray([labels[i] for _ in range(self.total_sample)]))
 
             elif i == 4:
                 for agreed_module in agreed_modules:
-                    data[agreed_module] = np.random.uniform(high=self.modules[agreed_module][i - 1],
-                                                            low=-1,
-                                                            size=[self.total_sample])
-                    data['expected_credible'] = labels[i]
+                    temp_creds[agreed_module].append(np.random.uniform(high=self.modules[agreed_module][0][i - 1],
+                                                                       low=-1,
+                                                                       size=self.total_sample))
+                    # high confidence
+                    temp_confs[agreed_module].append(
+                        np.random.uniform(high=1, low=self.modules[agreed_module][1], size=self.total_sample))
+                    # agreed module -> not credible, disagreed modules -> credible uncertain (i-1)
+                for disagreed_module in disagreed_modules:
+                    temp_creds[disagreed_module].append(np.random.uniform(high=self.modules[disagreed_module][0][i - 1],
+                                                                          low=self.modules[disagreed_module][0][i - 2],
+                                                                          size=self.total_sample))
+                    temp_confs[disagreed_module].append(
+                        np.random.uniform(high=1, low=self.modules[disagreed_module][1],
+                                          size=self.total_sample)) if confidence_density else temp_confs[
+                        disagreed_module].append(
+                        np.random.uniform(high=self.modules[disagreed_module][1], low=0, size=self.total_sample))
+                cred_labels.append(np.asarray([labels[i] for _ in range(self.total_sample)]))
             else:
                 for agreed_module in agreed_modules:
-                    data[agreed_module] = np.random.uniform(high=self.modules[agreed_module][i - 1],
-                                                            low=self.modules[agreed_module][i],
-                                                            size=[
-                                                                self.total_sample])
-                    data['expected_credible'] = labels[i]
-        print(data)
+                    temp_creds[agreed_module].append(np.random.uniform(high=self.modules[agreed_module][0][i - 1],
+                                                                       low=self.modules[agreed_module][0][i],
+                                                                       size=
+                                                                       self.total_sample))
+                    # high confidence
+                    temp_confs[agreed_module].append(
+                        np.random.uniform(high=1, low=self.modules[agreed_module][1], size=self.total_sample))
+                    # disagreed module -> preeceding (i-1)
+                for disagreed_module in disagreed_modules:
+                    # preeceding label
+                    temp_creds[disagreed_module].append(np.random.uniform(high=self.modules[disagreed_module][0][i - 1],
+                                                                          low=self.modules[disagreed_module][0][i - 2],
+                                                                          size=
+                                                                          self.total_sample))
+                    temp_confs[disagreed_module].append(
+                        np.random.uniform(high=1, low=self.modules[disagreed_module][1],
+                                          size=self.total_sample)) if confidence_density else temp_confs[
+                        disagreed_module].append(
+                        np.random.uniform(high=self.modules[disagreed_module][1], low=0, size=self.total_sample))
+                cred_labels.append(np.asarray([labels[i] for _ in range(self.total_sample)]))
 
+        for name, values in temp_creds.items():
+            data[name + '_cred'] = np.asarray(values).flatten()
+            data[name + '_conf'] = np.asarray(temp_confs[name]).flatten()
+        data['expected_credible'] = np.asarray(cred_labels).flatten()
         return data
 
     def all_agree_all_high(self):
@@ -173,14 +255,14 @@ class Sample_Generator():
     def all_not_verified(self):
         '''
         All of them have low confidence or either fail
+        todo: fail case is not implemented
         '''
         dummy_values = pd.DataFrame()
         # if data folder does not exist, create
         if not os.path.exists(DATA_DIR):
             os.makedirs(DATA_DIR)
         data = self._all_agree_helper()
-        # todo add some of agree
-        # todo add failed ones
+
         # all of them has low confidence, hence they are unverified.
         data.loc['misinfome_conf'] = np.random.uniform(high=1, low=self.misinfome_conf, size=[self.total_sample])
         data.loc['content_analys_conf'] = np.random.uniform(high=1, low=self.content_analys_conf,
@@ -219,9 +301,16 @@ if __name__ == '__main__':
                         type=float, default=0.6)
     parser.add_argument('--claim_conf', type=float, default=0.7)
     parser.add_argument('--n_modules', type=int, default=3, help="total number of modules")
+    parser.add_argument('--sample_mode', type= str,default='all_agree_all_high', help="select sample mode, all_not_verified, all_agree_all_high or some agree")
 
     args = parser.parse_args()
     sample_gen = Sample_Generator(args)
-    # sample_gen.all_not_verified()
-    sample_gen.all_agree_all_high()
-    # sample_gen.some_agree_without_fail()
+    mode = args.sample_mode
+
+    if mode is 'all_not_verified':
+        sample_gen.all_not_verified()
+    elif mode is 'all_agree_all_high':
+        sample_gen.all_agree_all_high()
+    elif mode is 'some_agree':
+        sample_gen.some_agree()
+
