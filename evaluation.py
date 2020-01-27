@@ -26,15 +26,15 @@ def _create_request(row):
     return {
 
         'misinfome': {
-            'cred': row['misinfome_creds'],
+            'cred': row['misinfome_cred'],
             'conf': row['misinfome_conf']
         },
         'stance': {
-            'cred': row['content_analys_creds'],
+            'cred': row['content_analys_cred'],
             'conf': row['content_analys_conf']
         },
         'claim_credibility': {
-            'cred': row['claim_creds'],
+            'cred': row['claim_cred'],
             'conf': row['claim_conf']
         }
 
@@ -50,6 +50,7 @@ def run(args):
         name = file_name.name[:-4]
         results['collection'] = name
         dummy_values = pd.read_csv(file_name, low_memory=False)
+        print(file_name)
         ground_labels = [target_names[value] for value in dummy_values.expected_credible]
         dummy_values['actual_credible'] = dummy_values.apply(lambda row: callback_aggregate(row,args.aggregate_func), axis=1)
         predictions = [target_names[value] for value in dummy_values.actual_credible]

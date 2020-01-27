@@ -73,9 +73,9 @@ class Sample_Generator():
                                                      low=self.claim_cred[i], size=[self.total_sample]))
                 cred_labels.append(np.asarray([labels[i] for _ in range(self.total_sample)]))
 
-        data['misinfome_creds'] = np.asarray(misinfome_creds).flatten()
-        data['content_analys_creds'] = np.asarray(content_analys_creds).flatten()
-        data['claim_creds'] = np.asarray(claim_creds).flatten()
+        data['misinfome_cred'] = np.asarray(misinfome_creds).flatten()
+        data['content_analys_cred'] = np.asarray(content_analys_creds).flatten()
+        data['claim_cred'] = np.asarray(claim_creds).flatten()
         data['expected_credible'] = np.asarray(cred_labels).flatten()
 
         return data
@@ -223,7 +223,7 @@ class Sample_Generator():
                 cred_labels.append(np.asarray([labels[i] for _ in range(self.total_sample)]))
 
         for name, values in temp_creds.items():
-            data[name + '_creds'] = np.asarray(values).flatten()
+            data[name + '_cred'] = np.asarray(values).flatten()
             data[name + '_conf'] = np.asarray(temp_confs[name]).flatten()
         data['expected_credible'] = np.asarray(cred_labels).flatten()
         return data
