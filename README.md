@@ -31,13 +31,42 @@ Example:
 
 ## Step 2 - Evaluate specified aggregation function with the samples in ~/data
 
+`evaluation.py` evaluates specific aggregation function for each cases in ~/data, and outputs results for each cases in format of `.json`.
+
 |Aggregation Function                         |Description                         |
 |-------------------------------|-----------------------------|
 |`dummy_output`            |Dummy method for just testing the pipeline           |
 
-To evaluate aggregation function run:
+|Evaluation Metrics                        |Description                         |
+|-------------------------------|-----------------------------|
+|`precision_macro`            | |
+|`recall_macro`            | |
+|`fscore_macro`            | |
+|`precision_micro`            | |
+|`recall_micro`            | |
+|`fscore_micro`            | |
+|`precision_credible`            | |
+|`precision_mostly_credible`            | |
+|`precision_mostly_not_credible`            | |
+|`precision_credible_uncertain` ||
+|`precision_not_credible` ||
+|`precision_not_verifiable` ||
+|`recall_credible` ||
+|`recall_mostly_credible` ||
+|`recall_mostly_not_credible` ||
+|`recall_credible_uncertain` ||
+|`recall_not_credible` ||
+|`recall_not_verifiable`||
+|`fscore_credible`||
+|`fscore_mostly_credible`||
+|`fscore_mostly_not_credible`||
+|`fscore_credible_uncertain`||
+|`fscore_not_credible`||
+|`fscore_not_verifiable`||å
 
-`python3 aggregators.py --aggregate_func {Aggregation Function}`
+To evaluate an aggregation function run:
+
+`python3 evaluation.py --aggregate_func {Aggregation Function}`
 
 Example:
-`python3 aggregators.py --aggregate_func dummy_output`
+`python3 evaluation.py --aggregate_func dummy_output`
