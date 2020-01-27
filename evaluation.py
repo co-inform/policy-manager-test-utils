@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import argparse
 
 import pandas as pd
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
@@ -15,9 +16,9 @@ Pipeline for the evaluation
 DATA_DIR = Path(os.path.dirname(os.path.dirname(__file__))) / Path(os.path.basename(os.path.dirname(__file__))) / 'data'
 
 
-def callback_aggregate(row, mode='dummy_output'):
+def callback_aggregate(row, aggregate_func='dummy_output'):
     dummy_request = _create_request(row)
-    response = methods[mode](dummy_request)
+    response = methods[aggregate_func](dummy_request)
     return response
 
 
@@ -40,7 +41,7 @@ def _create_request(row):
     }
 
 
-def run():
+def run(args):
     target_names = {'credible': 0, 'mostly_credible': 1, 'mostly_not_credible': 2, 'credible_uncertain': 3,
                     'not_credible': 4,
                     'not_verifiable': 5}
@@ -50,7 +51,7 @@ def run():
         results['collection'] = name
         dummy_values = pd.read_csv(file_name, low_memory=False)
         ground_labels = [target_names[value] for value in dummy_values.expected_credible]
-        dummy_values['actual_credible'] = dummy_values.apply(lambda row: callback_aggregate(row), axis=1)
+        dummy_values['actual_credible'] = dummy_values.apply(lambda row: callback_aggregate(row,args.aggregate_func), axis=1)
         predictions = [target_names[value] for value in dummy_values.actual_credible]
         results['accuracy'] = accuracy_score(ground_labels, predictions)
         scores = precision_recall_fscore_support(ground_labels, predictions, average='macro',
@@ -84,4 +85,9 @@ def run():
 
 
 if __name__ == '__main__':
-    run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--aggregate_func', type=str, default='default',
+                        help="Select aggregate function e.g sum, max, etc")
+
+    args = parser.parse_args()
+    run(args)
