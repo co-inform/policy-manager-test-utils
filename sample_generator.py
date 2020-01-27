@@ -332,13 +332,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--n_samples', type=int, default=20)
     parser.add_argument('--misinfome_cred', action='store',
-                        type=float, nargs='*', default=[0.66, 0.33, -0.33, -0.66],
+                        type=float, nargs=4, default=[0.66, 0.33, -0.33, -0.66],
                         help="Examples: --misinfome_cred item1 item2")
     parser.add_argument('--content_analysis_cred', action='store',
-                        type=float, nargs='*', default=[0.6, 0.3, -0.3, -0.6],
+                        type=float, nargs=4, default=[0.6, 0.3, -0.3, -0.6],
                         help="Examples: --content_analysis_cred item1 item2")
     parser.add_argument('--claim_cred', action='store',
-                        type=float, nargs='*', default=[0.5, 0.25, -0.5, -0.25],
+                        type=float, nargs=4, default=[0.5, 0.25, -0.5, -0.25],
                         help="Examples: --claim_cred item1 item2")
     parser.add_argument('--misinfome_conf',
                         type=float, default=0.5)
