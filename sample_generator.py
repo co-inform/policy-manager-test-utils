@@ -5,8 +5,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-DATA_DIR = Path(os.path.dirname(os.path.dirname(__file__))) / Path(os.path.basename(os.path.dirname(__file__))) / 'data'
+np.random.seed(seed=42)
 
+DATA_DIR = Path(os.path.dirname(os.path.dirname(__file__))) / Path(os.path.basename(os.path.dirname(__file__))) / 'data'
 
 class Sample_Generator():
     def __init__(self, args):
@@ -306,6 +307,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     sample_gen = Sample_Generator(args)
     mode = args.sample_mode
+
+    print('Selected mode is {}'.format(mode))
 
     if mode is 'all_not_verified':
         sample_gen.all_not_verified()
