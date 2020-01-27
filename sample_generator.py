@@ -9,6 +9,7 @@ np.random.seed(seed=42)
 
 DATA_DIR = Path(os.path.dirname(os.path.dirname(__file__))) / Path(os.path.basename(os.path.dirname(__file__))) / 'data'
 
+
 class Sample_Generator():
     def __init__(self, args):
         # =================== Params =================
@@ -31,7 +32,8 @@ class Sample_Generator():
                         'content_analys': [self.content_analys_cred, self.content_analys_conf],
                         'claim': [self.claim_cred, self.claim_conf]}
 
-    def _all_agree_helper(self, labels):
+    def _all_agree_helper(self):
+        labels = list(self.labels.keys())
         data = pd.DataFrame()
         misinfome_creds = []
         content_analys_creds = []
@@ -71,7 +73,7 @@ class Sample_Generator():
                                                      low=self.claim_cred[i], size=[self.total_sample]))
                 cred_labels.append(np.asarray([labels[i] for _ in range(self.total_sample)]))
 
-        data['misinfome_cred'] = np.asarray(misinfome_creds).flatten()
+        data['misinfome_creds'] = np.asarray(misinfome_creds).flatten()
         data['content_analys_creds'] = np.asarray(content_analys_creds).flatten()
         data['claim_creds'] = np.asarray(claim_creds).flatten()
         data['expected_credible'] = np.asarray(cred_labels).flatten()
@@ -221,7 +223,7 @@ class Sample_Generator():
                 cred_labels.append(np.asarray([labels[i] for _ in range(self.total_sample)]))
 
         for name, values in temp_creds.items():
-            data[name + '_cred'] = np.asarray(values).flatten()
+            data[name + '_creds'] = np.asarray(values).flatten()
             data[name + '_conf'] = np.asarray(temp_confs[name]).flatten()
         data['expected_credible'] = np.asarray(cred_labels).flatten()
         return data
@@ -235,8 +237,7 @@ class Sample_Generator():
         if not os.path.exists(DATA_DIR):
             os.makedirs(DATA_DIR)
 
-        labels = list(self.labels.keys())
-        data = self._all_agree_helper(labels)
+        data = self._all_agree_helper()
 
         # confidence value always high between th>val>1
         data['misinfome_conf'] = np.random.uniform(high=1, low=self.misinfome_conf, size=[data.shape[0]])
@@ -248,6 +249,49 @@ class Sample_Generator():
         # save dummy values {casename}_{module_name}_{upboundary_cred}_{conf}
         path = DATA_DIR / '{func_name}_misinfome_{misinfome_cred}_{misinfome_conf}_contentanalysis_{content_analysis_cred}_{content_analysis_conf}_claim_{claim_cred}_{claim_conf}.csv'.format(
             func_name=self.all_agree_all_high.__name__,
+            misinfome_cred=str(self.misinfome_cred[0]), misinfome_conf=str(self.misinfome_conf),
+            content_analysis_conf=self.content_analys_conf, content_analysis_cred=self.content_analys_cred[0],
+            claim_cred=str(self.claim_cred[0]), claim_conf=self.claim_conf)
+        dummy_values.to_csv(path)
+
+    def all_agree_some_high(self):
+        '''
+        In this case all of modules agree on one credibility label, but some of them with high confidence
+        '''
+        dummy_values = pd.DataFrame()
+        # if data folder does not exist, create
+        if not os.path.exists(DATA_DIR):
+            os.makedirs(DATA_DIR)
+
+        data = self._all_agree_helper()
+
+        misinfo_conf = []
+        content_analys_conf = []
+        claim_conf = []
+        # confidence value always high between th>val>1 half high
+        high_conf_sample = data.shape[0] // 2
+        low_conf_sample = data.shape[0] - high_conf_sample
+
+        misinfo_conf.append(np.random.uniform(high=1, low=self.misinfome_conf, size=[high_conf_sample]))
+
+        content_analys_conf.append(np.random.uniform(high=1, low=self.content_analys_conf,
+                                                     size=high_conf_sample))
+        claim_conf.append(np.random.uniform(high=1, low=self.claim_conf, size=high_conf_sample))
+
+        # confidence value always low val>0
+        misinfo_conf.append(np.random.uniform(high=self.misinfome_conf, low=0, size=low_conf_sample))
+        content_analys_conf.append(np.random.uniform(high=self.content_analys_conf, low=0,
+                                                     size=low_conf_sample))
+        claim_conf.append(np.random.uniform(high=self.claim_conf, low=0, size=low_conf_sample))
+
+        data['misinfome_conf'] = np.asarray(misinfo_conf).flatten()
+        data['content_analys_conf'] = np.asarray(content_analys_conf).flatten()
+        data['claim_conf'] = np.asarray(claim_conf).flatten()
+
+        dummy_values = dummy_values.append(data, ignore_index=True, sort=True)
+        # save dummy values {casename}_{module_name}_{upboundary_cred}_{conf}
+        path = DATA_DIR / '{func_name}_misinfome_{misinfome_cred}_{misinfome_conf}_contentanalysis_{content_analysis_cred}_{content_analysis_conf}_claim_{claim_cred}_{claim_conf}.csv'.format(
+            func_name=self.all_agree_some_high.__name__,
             misinfome_cred=str(self.misinfome_cred[0]), misinfome_conf=str(self.misinfome_conf),
             content_analysis_conf=self.content_analys_conf, content_analysis_cred=self.content_analys_cred[0],
             claim_cred=str(self.claim_cred[0]), claim_conf=self.claim_conf)
@@ -265,10 +309,10 @@ class Sample_Generator():
         data = self._all_agree_helper()
 
         # all of them has low confidence, hence they are unverified.
-        data.loc['misinfome_conf'] = np.random.uniform(high=1, low=self.misinfome_conf, size=[self.total_sample])
-        data.loc['content_analys_conf'] = np.random.uniform(high=1, low=self.content_analys_conf,
-                                                            size=[self.total_sample])
-        data.loc['claim_conf'] = np.random.uniform(high=1, low=self.claim_conf, size=[self.total_sample])
+        data['misinfome_conf'] = np.random.uniform(high=self.misinfome_conf, low=0, size=[data.shape[0]]).flatten()
+        data['content_analys_conf'] = np.random.uniform(high=self.content_analys_conf, low=0,
+                                                        size=[data.shape[0]]).flatten()
+        data['claim_conf'] = np.random.uniform(high=self.claim_conf, low=0, size=[data.shape[0]]).flatten()
 
         # label credibility
         data['expected_credible'] = 'not_verifiable'
@@ -276,7 +320,7 @@ class Sample_Generator():
         dummy_values = dummy_values.append(data, ignore_index=True, sort=True)
         # save dummy values {casename}_{module_name}_{upboundary_cred}_{conf}
         path = DATA_DIR / '{func_name}_misinfome_{misinfome_cred}_{misinfome_conf}_contentanalysis_{content_analysis_cred}_{content_analysis_conf}_claim_{claim_cred}_{claim_conf}.csv'.format(
-            func_name=self.all_not_verified.__name__,
+            func_name=self.all_agree_some_high.__name__,
             misinfome_cred=str(self.misinfome_cred[0]), misinfome_conf=str(self.misinfome_conf),
             content_analysis_conf=self.content_analys_conf, content_analysis_cred=self.content_analys_cred[0],
             claim_cred=str(self.claim_cred[0]), claim_conf=self.claim_conf)
@@ -302,7 +346,8 @@ if __name__ == '__main__':
                         type=float, default=0.6)
     parser.add_argument('--claim_conf', type=float, default=0.7)
     parser.add_argument('--n_modules', type=int, default=3, help="total number of modules")
-    parser.add_argument('--sample_mode', type= str,default='all_agree_all_high', help="select sample mode, all_not_verified, all_agree_all_high or some agree")
+    parser.add_argument('--sample_mode', type=str, default='all_agree_all_high',
+                        help="select sample mode, all_not_verified, all_agree_all_high or some agree")
 
     args = parser.parse_args()
     sample_gen = Sample_Generator(args)
@@ -310,10 +355,11 @@ if __name__ == '__main__':
 
     print('Selected mode is {}'.format(mode))
 
-    if mode is 'all_not_verified':
+    if mode == 'all_not_verified':
         sample_gen.all_not_verified()
-    elif mode is 'all_agree_all_high':
+    elif mode == 'all_agree_all_high':
         sample_gen.all_agree_all_high()
-    elif mode is 'some_agree':
+    elif mode == 'some_agree':
         sample_gen.some_agree()
-
+    elif mode == 'all_agree_some_high':
+        sample_gen.all_agree_some_high()
