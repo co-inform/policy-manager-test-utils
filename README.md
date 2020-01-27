@@ -33,11 +33,11 @@ Example:
 
 |Aggregation Function                         |Description                         |
 |-------------------------------|-----------------------------|
-|`default`            |Dummy method for just testing the pipeline           |
+|`dummy_output`            |Dummy method for just testing the pipeline           |
 
 To evaluate aggregation function run:
 
 `python3 aggregators.py --aggregate_func {Aggregation Function}`
 
 Example:
-`python3 aggregators.py --aggregate_func default`
+`python3 aggregators.py --aggregate_func dummy_output`
