@@ -326,6 +326,14 @@ class Sample_Generator():
             claim_cred=str(self.claim_cred[0]), claim_conf=self.claim_conf)
         dummy_values.to_csv(path)
 
+    def from_twitter(self):
+        '''
+        Generates test values from topics
+        :return:
+        :rtype:
+        '''
+        pass
+
 
 if __name__ == '__main__':
     print('This script generates samples for testing rules')
@@ -363,3 +371,5 @@ if __name__ == '__main__':
         sample_gen.some_agree()
     elif mode == 'all_agree_some_high':
         sample_gen.all_agree_some_high()
+    elif mode == 'external_twitter':
+        sample_gen.from_twitter()
