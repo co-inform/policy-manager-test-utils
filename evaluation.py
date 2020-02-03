@@ -16,29 +16,45 @@ Pipeline for the evaluation
 DATA_DIR = Path(os.path.dirname(os.path.dirname(__file__))) / Path(os.path.basename(os.path.dirname(__file__))) / 'data'
 
 
+
+THRESHOLDS = {
+    'credible': 0.66,
+    'mostly_credible': 0.33,
+    'credible_uncertain': -0.33,
+    'mostly_not_credible': -0.66,
+    'not_credible': -0.99,
+}
+
+thresholds = sorted(THRESHOLDS.items(), key=lambda t: t[1], reverse=True)
+
+
 def callback_aggregate(row, aggregate_func='dummy_output'):
     dummy_request = _create_request(row)
-    response = methods[aggregate_func](dummy_request)
+    response = methods[aggregate_func](dummy_request, thresholds)
     return response
+
 
 
 def _create_request(row):
     return {
 
         'misinfome': {
-            'cred': row['misinfome_creds'],
+            'cred': row['misinfome_cred'],
             'conf': row['misinfome_conf']
         },
         'stance': {
-            'cred': row['content_analys_creds'],
+            'cred': row['content_analys_cred'],
             'conf': row['content_analys_conf']
         },
         'claim_credibility': {
-            'cred': row['claim_creds'],
+            'cred': row['claim_cred'],
             'conf': row['claim_conf']
         }
 
     }
+
+
+
 
 
 def run(args):
@@ -50,6 +66,7 @@ def run(args):
         name = file_name.name[:-4]
         results['collection'] = name
         dummy_values = pd.read_csv(file_name, low_memory=False)
+        print(file_name)
         ground_labels = [target_names[value] for value in dummy_values.expected_credible]
         dummy_values['actual_credible'] = dummy_values.apply(lambda row: callback_aggregate(row,args.aggregate_func), axis=1)
         predictions = [target_names[value] for value in dummy_values.actual_credible]
