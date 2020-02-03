@@ -75,7 +75,6 @@ def default(credibility_results, thresholds):
                     outputs.append('not_verifiable')
                     break
     for item in outputs:
-        print(item)
         return item
 
 
