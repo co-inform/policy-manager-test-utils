@@ -19,22 +19,17 @@ get all values and take average, then set it to final label
 
 
 
-THRESHOLDS = {
-    'credible': 0.6,
-    'mostly_credible': 0.33,
-    'credible_uncertain': -0.33,
-    'mostly_not_credible': -0.66,
-    'not_credible': -0.99,
-}
 
-outputs = []
-thresholds = sorted(THRESHOLDS.items(), key=lambda t: t[1], reverse=True)
+
 
 CRED_WEIGHTS = [['misinfome',1], ['content_analys',4], ['claim',3]]
 
 
 
-def maximum(credibility_results):
+def maximum(credibility_results, thresholds):
+
+    outputs = []
+
     misinfome_conf = credibility_results["misinfome"]["conf"]
     content_analys_conf = credibility_results["stance"]["conf"]
     claim_conf = credibility_results["claim_credibility"]["conf"]
@@ -43,18 +38,14 @@ def maximum(credibility_results):
     content_analys_cred = credibility_results["stance"]["cred"]
     claim_cred = credibility_results["claim_credibility"]["cred"]
 
-
-
     maximum_confidence = np.maximum(np.maximum(misinfome_conf, content_analys_conf), claim_conf)
     maximum_credibility = np.maximum(np.maximum(misinfome_cred, claim_cred), content_analys_cred)
-
-    thresholds = sorted(THRESHOLDS.items(), key=lambda t: t[1], reverse=True)
 
     if maximum_confidence < 0.5:
         outputs.append('not_verifiable')
     elif maximum_confidence >= 0.5:
         for label, threshold in thresholds:
-            if maximum_credibility <= threshold:
+            if maximum_credibility >= threshold:
                 outputs.append(label)
                 break
     for item in outputs:
@@ -65,13 +56,13 @@ def maximum(credibility_results):
 
 
 
-def default(credibility_results):
+def default(credibility_results, thresholds):
+
+    outputs = []
 
     misinfome_cred = credibility_results["misinfome"]["cred"]
     content_analys_cred = credibility_results["stance"]["cred"]
     claim_cred = credibility_results["claim_credibility"]["cred"]
-
-
 
     for label, threshold in thresholds:
                 if (misinfome_cred > threshold) & (content_analys_cred > threshold):
@@ -84,6 +75,7 @@ def default(credibility_results):
                     outputs.append('not_verifiable')
                     break
     for item in outputs:
+        print(item)
         return item
 
 
@@ -95,7 +87,10 @@ def dummy_output(credibility_results):
 
 
 
-def weighted_average(credibility_results):
+def weighted_average(credibility_results, thresholds):
+
+    outputs = []
+
     misinfome_conf = credibility_results["misinfome"]["conf"]
     content_analys_conf = credibility_results["stance"]["conf"]
     claim_conf = credibility_results["claim_credibility"]["conf"]
@@ -103,6 +98,8 @@ def weighted_average(credibility_results):
     misinfome_cred = credibility_results["misinfome"]["cred"]
     content_analys_cred = credibility_results["stance"]["cred"]
     claim_cred = credibility_results["claim_credibility"]["cred"]
+
+
 
     weighted_average_credibility = (misinfome_cred * CRED_WEIGHTS[0][1] +
                                         claim_cred * CRED_WEIGHTS[1][1] +
@@ -120,7 +117,7 @@ def weighted_average(credibility_results):
         outputs.append('not_verifiable')
     else:
         for label, threshold in thresholds:
-            if weighted_average_credibility <= threshold:
+            if weighted_average_credibility >= threshold:
                 outputs.append(label)
                 break
     for item in outputs:
