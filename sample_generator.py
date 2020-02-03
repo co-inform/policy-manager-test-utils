@@ -1,14 +1,24 @@
 import argparse
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+from loguru import logger
 
 import numpy as np
 import pandas as pd
+import os
 
 np.random.seed(seed=42)
 
-DATA_DIR = Path(os.path.dirname(os.path.dirname(__file__))) / Path(os.path.basename(os.path.dirname(__file__))) / 'data'
+ROOT = Path(os.path.dirname(os.path.dirname(__file__))) / Path(os.path.basename(os.path.dirname(__file__)))
+DATA_DIR = ROOT / 'data'
+env_path = ROOT / '.env'
+load_dotenv(dotenv_path=env_path)
 
+# =================== COINFORM API SETTINGS =================
+COINFORM_ENDPOINT = os.getenv('COINFORM_ENDPOINT')
+QUERY_ID_REQUEST = '/twitter/tweet'
+RESPONSE_TWEET = '/response/{query_id}/debug'
 
 class Sample_Generator():
     def __init__(self, args):
@@ -331,6 +341,8 @@ class Sample_Generator():
         return None
 
     def _request(self, tweet_id):
+        logger.debug('I am requesting tweet {}'.format(tweet_id))
+        COINFORM_ENDPOINT
         pass
 
     def from_misinfome(self):
