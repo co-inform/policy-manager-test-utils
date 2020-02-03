@@ -326,14 +326,23 @@ class Sample_Generator():
             claim_cred=str(self.claim_cred[0]), claim_conf=self.claim_conf)
         dummy_values.to_csv(path)
 
-    def from_twitter(self):
+    def from_misinfome(self):
         '''
-        Generates test values from topics
+        Retrieves english tweets from misinfome collection and record tweet ids and labels.
         :return:
         :rtype:
         '''
-        pass
-
+        dest_file = DATA_DIR / 'misinfome.tsv'
+        src_file = DATA_DIR / 'misinfome' / 'joined_tables.tsv'
+        fc_labels_file = DATA_DIR / 'misinfome' / 'fact_checking_labels.csv'
+        if not os.path.isfile(dest_file):
+            data = pd.read_csv(src_file, sep='\t')
+            mask = (data['lang'] == 'en') & (data['source'].str.contains('twitter'))
+            data = data[mask]
+            data = data[['url', 'factchecker_label']]
+            if not fc_labels_file.exists():
+                fc_labels = pd.DataFrame(pd.unique(data['factchecker_label']))
+                fc_labels.to_csv(fc_labels_file)
 
 if __name__ == '__main__':
     print('This script generates samples for testing rules')
@@ -354,7 +363,7 @@ if __name__ == '__main__':
                         type=float, default=0.6)
     parser.add_argument('--claim_conf', type=float, default=0.7)
     parser.add_argument('--n_modules', type=int, default=3, help="total number of modules")
-    parser.add_argument('--sample_mode', type=str, default='all_agree_all_high',
+    parser.add_argument('--sample_mode', type=str, default='external_misinfome',
                         help="select sample mode, all_not_verified, all_agree_all_high or some agree")
 
     args = parser.parse_args()
@@ -371,5 +380,5 @@ if __name__ == '__main__':
         sample_gen.some_agree()
     elif mode == 'all_agree_some_high':
         sample_gen.all_agree_some_high()
-    elif mode == 'external_twitter':
-        sample_gen.from_twitter()
+    elif mode == 'external_misinfome':
+        sample_gen.from_misinfome()
