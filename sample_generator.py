@@ -326,6 +326,13 @@ class Sample_Generator():
             claim_cred=str(self.claim_cred[0]), claim_conf=self.claim_conf)
         dummy_values.to_csv(path)
 
+    def _map_label(self, label):
+        print('Not implemented yet!!')
+        return None
+
+    def _request(self, tweet_id):
+        pass
+
     def from_misinfome(self):
         '''
         Retrieves english tweets from misinfome collection and record tweet ids and labels.
@@ -343,6 +350,19 @@ class Sample_Generator():
             if not fc_labels_file.exists():
                 fc_labels = pd.DataFrame(pd.unique(data['factchecker_label']))
                 fc_labels.to_csv(fc_labels_file)
+            ## claim_conf,claim_cred,content_analys_conf,content_analys_cred,expected_credible,misinfome_conf,misinfome_cred
+            for index, row in data.iterrows():
+                response = self._request(row['url'])
+                row.at[index, 'claim_conf'] = response['claim_conf']
+                row.at[index, 'claim_cred'] = response['claim_cred']
+                row.at[index, 'content_analys_conf'] = response['content_analys_conf']
+                row.at[index, 'content_analys_cred'] = response['content_analys_cred']
+                row.at[index, 'misinfome_conf'] = response['misinfome_conf']
+                row.at[index, 'misinfome_cred'] = response['misinfome_cred']
+                row.at[index, 'expected_credible'] = self._map_label(row['factchecker_label'])
+            data[['claim_conf', 'claim_cred', 'content_analys_conf', 'content_analys_cred', 'misinfome_conf',
+                  'misinfome_cred']].to_csv(dest_file)
+
 
 if __name__ == '__main__':
     print('This script generates samples for testing rules')
