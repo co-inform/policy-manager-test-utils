@@ -7,6 +7,7 @@ from loguru import logger
 import numpy as np
 import pandas as pd
 import os
+import requests
 
 np.random.seed(seed=42)
 
@@ -17,7 +18,7 @@ load_dotenv(dotenv_path=env_path)
 
 # =================== COINFORM API SETTINGS =================
 COINFORM_ENDPOINT = os.getenv('COINFORM_ENDPOINT')
-QUERY_ID_REQUEST = '/twitter/tweet'
+QUERY_ID_REQUEST = COINFORM_ENDPOINT + '/twitter/tweet'
 RESPONSE_TWEET = '/response/{query_id}/debug'
 
 class Sample_Generator():
@@ -342,7 +343,14 @@ class Sample_Generator():
 
     def _request(self, tweet_id):
         logger.debug('I am requesting tweet {}'.format(tweet_id))
-        COINFORM_ENDPOINT
+        data = {
+              "tweet_id": tweet_id,
+              "tweet_author": "string",
+              "tweet_text": "string"
+            }
+        # first response includes query id
+        response_1 = requests.post(QUERY_ID_REQUEST, data)
+
         pass
 
     def from_misinfome(self):
@@ -365,6 +373,7 @@ class Sample_Generator():
             ## claim_conf,claim_cred,content_analys_conf,content_analys_cred,expected_credible,misinfome_conf,misinfome_cred
             for index, row in data.iterrows():
                 response = self._request(row['url'])
+                # todo add if else in order not to computer again and again
                 row.at[index, 'claim_conf'] = response['claim_conf']
                 row.at[index, 'claim_cred'] = response['claim_cred']
                 row.at[index, 'content_analys_conf'] = response['content_analys_conf']
