@@ -1,13 +1,18 @@
 import argparse
+import csv
 import os
+import re
+import sys
 from pathlib import Path
-from dotenv import load_dotenv
-from loguru import logger
 
 import numpy as np
 import pandas as pd
-import os
 import requests
+from dotenv import load_dotenv
+from loguru import logger
+
+logger.add(sys.stderr, level="INFO")
+logger.add("debug.log", level="DEBUG", rotation="500 MB")
 
 np.random.seed(seed=42)
 
@@ -19,7 +24,10 @@ load_dotenv(dotenv_path=env_path)
 # =================== COINFORM API SETTINGS =================
 COINFORM_ENDPOINT = os.getenv('COINFORM_ENDPOINT')
 QUERY_ID_REQUEST = COINFORM_ENDPOINT + '/twitter/tweet'
-RESPONSE_TWEET = '/response/{query_id}/debug'
+RESPONSE_TWEET = COINFORM_ENDPOINT + '/response/{query_id}/debug'
+
+RE_TWITTER_TWEET_ID = re.compile('^https\:\/\/twitter.com\/.*\/status\/(\d+).*')
+
 
 class Sample_Generator():
     def __init__(self, args):
@@ -341,17 +349,74 @@ class Sample_Generator():
         print('Not implemented yet!!')
         return None
 
-    def _request(self, tweet_id):
-        logger.debug('I am requesting tweet {}'.format(tweet_id))
-        data = {
-              "tweet_id": tweet_id,
-              "tweet_author": "string",
-              "tweet_text": "string"
-            }
-        # first response includes query id
-        response_1 = requests.post(QUERY_ID_REQUEST, data)
+    def _parse_id(self, tweet_url):
+        match = RE_TWITTER_TWEET_ID.match(tweet_url)
+        return match.group(1) if match is not None else None
 
-        pass
+    def _request(self, tweet_id):
+        # logger.debug('I am requesting tweet {}'.format(tweet_id))
+        args = {
+            "tweet_id": self._parse_id(tweet_id),
+            "tweet_author": "string",
+            "tweet_text": "string"
+        }
+        # first response includes query id
+        response_1 = requests.post(QUERY_ID_REQUEST, json=args).json()
+        if 'query_id' not in response_1:
+            return None
+        query_id = response_1['query_id']
+        task_completed = False
+        modules_response = {}
+
+        err_count = 100
+        while (not task_completed):
+            response_2 = requests.get(RESPONSE_TWEET.format(query_id=query_id)).json()
+            status = response_2['status']
+            # logger.debug('Query response {}'.format(status))
+            if status == 'partly_done' or status == 'in_progress':
+                err_count -= 1
+                if err_count == 0:
+                    status = 'done'
+            if status == 'done':
+                response_codes = response_2['module_response_code']
+                logger.debug(response_2['flattened_module_responses'])
+                if response_codes[
+                    'claimcredibility'] == 200 and 'claimcredibility_tweet_claim_credibility_0_confidence' in \
+                        response_2['flattened_module_responses']:
+                    modules_response['claim_conf'] = response_2['flattened_module_responses'][
+                        'claimcredibility_tweet_claim_credibility_0_confidence']
+                    modules_response['claim_cred'] = response_2['flattened_module_responses'][
+                        'claimcredibility_tweet_claim_credibility_0_credibility']
+                else:
+                    modules_response['claim_conf'] = -100
+                    modules_response['claim_cred'] = -100
+                if response_codes['contentanalysis'] == 200 and 'contentanalysis_credibility' in response_2[
+                    'flattened_module_responses']:
+                    modules_response['content_analys_conf'] = response_2['flattened_module_responses'][
+                        'contentanalysis_confidence']
+                    modules_response['content_analys_cred'] = response_2['flattened_module_responses'][
+                        'contentanalysis_credibility']
+                else:
+                    modules_response['content_analys_conf'] = -100
+                    modules_response['content_analys_cred'] = -100
+                if response_codes['misinfome'] == 200 and 'misinfome_credibility_value' in response_2[
+                    'flattened_module_responses']:
+                    modules_response['misinfome_conf'] = response_2['flattened_module_responses'][
+                        'misinfome_credibility_confidence']
+                    modules_response['misinfome_cred'] = response_2['flattened_module_responses'][
+                        'misinfome_credibility_value']
+                else:
+                    modules_response['misinfome_conf'] = -100
+                    modules_response['misinfome_cred'] = -100
+
+                task_completed = True
+
+        return modules_response
+
+    def export_to_file(self, row, file_path):
+        with open(file_path, 'a', encoding='utf-8') as f:
+            cw = csv.writer(f, delimiter='\t')
+            cw.writerow(row)
 
     def from_misinfome(self):
         '''
@@ -362,6 +427,9 @@ class Sample_Generator():
         dest_file = DATA_DIR / 'misinfome.tsv'
         src_file = DATA_DIR / 'misinfome' / 'joined_tables.tsv'
         fc_labels_file = DATA_DIR / 'misinfome' / 'fact_checking_labels.csv'
+        responses_file = DATA_DIR / 'misinfome' / 'misinfome_responses.csv'
+        file_path = DATA_DIR / 'misinfome/rule-responses/export.csv'
+
         if not os.path.isfile(dest_file):
             data = pd.read_csv(src_file, sep='\t')
             mask = (data['lang'] == 'en') & (data['source'].str.contains('twitter'))
@@ -370,19 +438,35 @@ class Sample_Generator():
             if not fc_labels_file.exists():
                 fc_labels = pd.DataFrame(pd.unique(data['factchecker_label']))
                 fc_labels.to_csv(fc_labels_file)
+
             ## claim_conf,claim_cred,content_analys_conf,content_analys_cred,expected_credible,misinfome_conf,misinfome_cred
-            for index, row in data.iterrows():
-                response = self._request(row['url'])
-                # todo add if else in order not to computer again and again
-                row.at[index, 'claim_conf'] = response['claim_conf']
-                row.at[index, 'claim_cred'] = response['claim_cred']
-                row.at[index, 'content_analys_conf'] = response['content_analys_conf']
-                row.at[index, 'content_analys_cred'] = response['content_analys_cred']
-                row.at[index, 'misinfome_conf'] = response['misinfome_conf']
-                row.at[index, 'misinfome_cred'] = response['misinfome_cred']
-                row.at[index, 'expected_credible'] = self._map_label(row['factchecker_label'])
-            data[['claim_conf', 'claim_cred', 'content_analys_conf', 'content_analys_cred', 'misinfome_conf',
-                  'misinfome_cred']].to_csv(dest_file)
+            if not responses_file.exists():
+                self.export_to_file(['#id', 'url', 'claim_conf',
+                                     'claim_cred',
+                                     'content_analys_conf',
+                                     'content_analys_cred',
+                                     'misinfome_conf',
+                                     'misinfome_cred'], file_path)
+                for index, row in data.iterrows():
+                    row['id'] = self._parse_id(row['url'])
+                    logger.info(row['id'])
+                    response = self._request(row['url'])
+                    if response:
+                        row_obj = {
+                            'id': row['id'],
+                            'url': row['url'],
+                            'claim_conf': response['claim_conf'],
+                            'claim_cred': response['claim_cred'],
+                            'content_analys_conf': response['content_analys_conf'],
+                            'content_analys_cred': response['content_analys_cred'],
+                            'misinfome_conf': response['misinfome_conf'],
+                            'misinfome_cred': response['misinfome_cred'],
+                        }
+                        # row['expected_credible'] = self._map_label(row['factchecker_label'])
+                        self.export_to_file(list(row_obj.values()), file_path)
+                # data[['claim_conf', 'claim_cred', 'content_analys_conf', 'content_analys_cred', 'misinfome_conf',
+                #       'misinfome_cred']].to_csv(responses_file)
+            # todo add final data csv
 
 
 if __name__ == '__main__':
