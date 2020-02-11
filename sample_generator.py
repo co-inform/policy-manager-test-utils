@@ -26,9 +26,6 @@ COINFORM_ENDPOINT = os.getenv('COINFORM_ENDPOINT')
 QUERY_ID_REQUEST = COINFORM_ENDPOINT + '/twitter/tweet'
 RESPONSE_TWEET = COINFORM_ENDPOINT + '/response/{query_id}/debug'
 
-RE_TWITTER_TWEET_ID = re.compile('^https\:\/\/twitter.com\/.*\/status\/(\d+).*')
-
-
 class Sample_Generator():
     def __init__(self, args):
         # =================== Params =================
@@ -50,6 +47,7 @@ class Sample_Generator():
         self.modules = {'misinfome': [self.misinfome_cred, self.misinfome_conf],
                         'content_analys': [self.content_analys_cred, self.content_analys_conf],
                         'claim': [self.claim_cred, self.claim_conf]}
+
 
     def _all_agree_helper(self):
         labels = list(self.labels.keys())
@@ -349,14 +347,10 @@ class Sample_Generator():
         print('Not implemented yet!!')
         return None
 
-    def _parse_id(self, tweet_url):
-        match = RE_TWITTER_TWEET_ID.match(tweet_url)
-        return match.group(1) if match is not None else None
-
     def _request(self, tweet_id):
         # logger.debug('I am requesting tweet {}'.format(tweet_id))
         args = {
-            "tweet_id": self._parse_id(tweet_id),
+            "tweet_id": parse_id(tweet_id),
             "tweet_author": "string",
             "tweet_text": "string"
         }
@@ -426,7 +420,7 @@ class Sample_Generator():
         '''
         dest_file = DATA_DIR / 'misinfome.tsv'
         src_file = DATA_DIR / 'misinfome' / 'joined_tables.tsv'
-        fc_labels_file = DATA_DIR / 'misinfome' / 'fact_checking_labels.csv'
+        fc_labels_file = DATA_DIR / 'misinfome' / 'fact_checking_gold_labels.tsv'
         responses_file = DATA_DIR / 'misinfome' / 'misinfome_responses.csv'
         file_path = DATA_DIR / 'misinfome/rule-responses/export.csv'
 
@@ -448,7 +442,7 @@ class Sample_Generator():
                                      'misinfome_conf',
                                      'misinfome_cred'], file_path)
                 for index, row in data.iterrows():
-                    row['id'] = self._parse_id(row['url'])
+                    row['id'] = parse_id(row['url'])
                     logger.info(row['id'])
                     response = self._request(row['url'])
                     if response:
