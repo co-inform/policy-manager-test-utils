@@ -37,7 +37,7 @@ Example:
 |-------------------------------|-----------------------------|
 |`dummy_output`            |Dummy method for just testing the pipeline           |
 
-|Evaluation Metrics                        |Description                         |
+| Metrics                        |Results                         |
 |-------------------------------|-----------------------------|
 |`precision_macro`            | |
 |`recall_macro`            | |
@@ -47,19 +47,16 @@ Example:
 |`fscore_micro`            | |
 |`precision_credible`            | |
 |`precision_mostly_credible`            | |
-|`precision_mostly_not_credible`            | |
 |`precision_credible_uncertain` ||
 |`precision_not_credible` ||
 |`precision_not_verifiable` ||
 |`recall_credible` ||
 |`recall_mostly_credible` ||
-|`recall_mostly_not_credible` ||
 |`recall_credible_uncertain` ||
 |`recall_not_credible` ||
 |`recall_not_verifiable`||
 |`fscore_credible`||
 |`fscore_mostly_credible`||
-|`fscore_mostly_not_credible`||
 |`fscore_credible_uncertain`||
 |`fscore_not_credible`||
 |`fscore_not_verifiable`||å
